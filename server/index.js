@@ -1,4 +1,4 @@
-const DEBUG_BUILD = false;
+const DEBUG_BUILD = true;
 
 const express = require('express')
 const app = express();
@@ -72,14 +72,13 @@ function trackEvent(event, info) {
     else {
         debugLog(info.codeContent);
     }
-
 }
 
 app.post('/', (req, res) => {
     var json = parseRequest(req.body);
     if (json == undefined) return;
 
-    debugLog("Received: ", json);
+    debugLog("Received: " + req.body);
     var info = lineOfCodeInfo(json.function_call);
 
     trackEvent(json.function_call, info);
@@ -106,33 +105,7 @@ app.post('/', (req, res) => {
     else {
         debugLog(expression_str + " = " + expression.toString());
     }
-    res.send(expression);
-    return;
-    // }
-
-    // fs.readFile(filename, { encoding: 'utf-8' }, function(err, data) {
-    //     if (!err) {
-    //         var line = data.split('\n')[parseInt(lineNumber - 1)];
-    //         console.log(line);
-    //         var index = line.search(hot_reload_function_name) + hot_reload_function_name.length + 1;
-    //
-    //         var char = line.charAt(index);
-    //         while (char != ')') {
-    //             switch (char) {
-    //                 case " ": {
-    //                 } break;
-    //                 default: {
-    //                     console.log(char);
-    //                 } break;
-    //             }
-    //             char = line.charAt(++index);
-    //         }
-    //     }
-    //     else {
-    //         console.log(err);
-    //     }
-    // });
-    res.end();
+    res.send({ key: json.function_call, value: expression });
 })
 
 app.post('/tracked_files', (req, res) => {
@@ -142,17 +115,17 @@ app.post('/tracked_files', (req, res) => {
         return;
     }
 
-    debugLog("Tracked filed request: ", json);
+    debugLog("Tracked filed request: " + req.body);
 
     var info = lineOfCodeInfo(json.function_call);
-    debugLog("Line of code info", info);
-    debugLog();
+    debugLog("Line of code info " + info.toString());
+    debugLog("");
 
     var lineWasChanged = (tracked_events.has(json.function_call) && tracked_events.get(json.function_call) != info.codeContent);
-    res.send(lineWasChanged);
-    debugLog("Was line of code changed?\nCurrent: " + (tracked_events.has(json.function_call) ? tracked_events.get(json.function_call) : info.codeContent) + "\nNew: " + info.codeContent + "\nThe line of code " + (lineWasChanged ? "was" : "was not") + " changed\n");
+    res.send({ key: json.function_call, line_was_changed: lineWasChanged });
+    debugLog("Was line of code changed?\nCurrent: " + (tracked_events.has(json.function_call) ? tracked_events.get(json.function_call) : info.codeContent) + "\nNew: " + info.codeContent + "\n\x1b[" + (lineWasChanged ? "32" : "31") + "mThe line of code " + (lineWasChanged ? "was" : "was not") + " changed\x1b[0m\n");
 
-    trackEvent(json.function_call, info.codeContent);
+    trackEvent(json.function_call, info);
 })
 
 app.get('/', (req, res) => {
