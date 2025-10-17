@@ -46,4 +46,4 @@ var rectangle_width = hot_reload(35 * 5 / 5);
 ```
 ---
 ## ⚙️ More costumizations
-The server updates every second, but this can be changed by going in the `obj_corain_hot_reload` object and changing the `refresh_time` variable to the time you want (in steps: ```js 60``` fps -> ```js 1``` second at ```js 60``` fps).
+The server updates every second, but this can be changed by going in the `obj_corain_hot_reload` object and changing the `refresh_time` variable to the time you want (in steps: 60 steps -> 1 second at 60 fps).
