@@ -24,14 +24,14 @@ function hot_reload(value)
 	
 	if (!hot_reload_info.line_was_changed)
 	{
-		if (timer >= backend.refresh_time)
+		if (backend.timer >= backend.refresh_time)
 		{
-			array_push(tracked_files_handles, http_post_string(url + "/tracked_files", json));
+			array_push(backend.tracked_files_handles, http_post_string(backend.url + "/tracked_files", json));
 		}
 		return value;
 	}
 
-	post(json);
+	backend.post(json);
 	
 	return hot_reload_info.return_value == undefined? value : hot_reload_info.return_value;
 }
