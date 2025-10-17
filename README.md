@@ -1,30 +1,49 @@
-# Hot Reload Expressions in GameMaker
+# ⚡ Hot Reload Expressions in GameMaker
 
-This project provides a **hot reload expression system** for GameMaker projects using a local server.  
-It allows you to update numeric values in the source code and see the changes without needing to recompile.
+This project provides a **hot reload expression system** for **GameMaker** using a local server.  
+
+It's not uncommon that you just need to see the results of trivial numerical changes. But with big projects, recompiling can be really incovenient. 
+This project allows you to update **numeric values directly in your source code** and see the results without recompiling.
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Run the Server
-The server is located in the `datafiles` folder of your GameMaker project.
+### 1️⃣ Run the Server
+##
+The server is located in your GameMaker project’s **`datafiles`** folder.  
+Make sure it’s **running** for hot reload to work properly.
 
-The server must be being executed for it to work.
+`📁 YOUR_PROJECT > 📁 datafiles > 📄 corain_hot_reload_server.exe`
 
-### 2. Place the object in the room
-The `obj_corain_hot_reload` object is also needed for it to work, if the `hot_reload` function is invoked but this object doesn't exist, the game will crash.
 
-You can call `hot_reload_init()` and it will create the object for you.
 
-You can also just place it in the room.
+### 2️⃣ Place the Object in the Room
+##
+The object **`obj_corain_hot_reload`** is required for the system to function.
 
-### 3. Use the `hot_reload` function
-Now you can use the `hot_reload` function with numeric expressions.
+You can:
+- Call `hot_reload_init()` — this automatically creates the object at runtime, **or**
+- Place `obj_corain_hot_reload` manually in the room.
 
-Example: ```var rectangle_width = hot_reload(64)```
+> ⚠️ **Warning**  
+> If the `hot_reload()` function is called **without** this object existing, the game **will crash**.
 
-Everytime you change that argument in the `hot_reload` function, it will update in-game.
+### 3️⃣ Use the `hot_reload()` function
+##
+You can now wrap any **numeric or arithmetic expression** inside the `hot_reload()` function.
 
-Warning: There can only be one `hot_reload` invocation per line of code.
+#### Example:
+```js
+var rectangle_width = hot_reload(64);
+```
+Every time you modify the argument inside hot_reload(), the value updates live in-game.
 
+Arithmetic expressions also work.
+#### Example:
+```js
+var rectangle_width = hot_reload(35 * 5 / 5);
+```
+---
+## ⚙️ More costumizations
+The server updates every second, but this can be changed by going in the `obj_corain_hot_reload` object and changing the `refresh_time` variable to the time you want (in steps: 60 steps -> 1 second at 60 fps).
