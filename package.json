@@ -1,0 +1,17 @@
+{
+  "name": "gml_corain_hot_reload",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "ThatDet",
+  "type": "commonjs",
+  "main": "src/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "mathjs": "^15.0.0"
+  },
+  "bin": "index.js"
+}
