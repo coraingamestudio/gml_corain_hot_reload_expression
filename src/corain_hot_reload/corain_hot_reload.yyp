@@ -11,6 +11,9 @@
   "defaultScriptType":1,
   "Folders":[
     {"$GMFolder":"","%Name":"Corain Hot Reload","folderPath":"folders/Corain Hot Reload.yy","name":"Corain Hot Reload","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Objects","folderPath":"folders/Objects.yy","name":"Objects","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"folder","folderPath":"folders/Objects/folder.yy","name":"folder","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Rooms","folderPath":"folders/Rooms.yy","name":"Rooms","resourceType":"GMFolder","resourceVersion":"2.0",},
   ],
   "IncludedFiles":[
     {"$GMIncludedFile":"","%Name":"corain_hot_reload_server.exe","CopyToMask":-1,"filePath":"datafiles","name":"corain_hot_reload_server.exe","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
@@ -23,11 +26,16 @@
   "name":"corain_hot_reload",
   "resources":[
     {"id":{"name":"obj_corain_hot_reload","path":"objects/obj_corain_hot_reload/obj_corain_hot_reload.yy",},},
+    {"id":{"name":"test_1","path":"objects/test_1/test_1.yy",},},
+    {"id":{"name":"test_2","path":"objects/test_2/test_2.yy",},},
+    {"id":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
     {"id":{"name":"scr_hot_reload","path":"scripts/scr_hot_reload/scr_hot_reload.yy",},},
   ],
   "resourceType":"GMProject",
   "resourceVersion":"2.0",
-  "RoomOrderNodes":[],
+  "RoomOrderNodes":[
+    {"roomId":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
+  ],
   "templateType":"game",
   "TextureGroups":[
     {"$GMTextureGroup":"","%Name":"Default","autocrop":true,"border":2,"compressFormat":"bz2","customOptions":"","directory":"","groupParent":null,"isScaled":true,"loadType":"default","mipsToGenerate":0,"name":"Default","resourceType":"GMTextureGroup","resourceVersion":"2.0","targets":-1,},
