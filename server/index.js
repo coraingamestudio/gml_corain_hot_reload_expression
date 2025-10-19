@@ -83,13 +83,47 @@ function getTrackedEventKey(functionCall) {
     return functionCall;
 }
 
+function endIndexOfParen(codeContent, startIndex) {
+    var parenCount = 1;
+    var i = startIndex;
+    for (; parenCount > 0; i += 1) {
+        switch (codeContent.charAt(i)) {
+            case "(": parenCount += 1; break;
+            case ")": parenCount -= 1; break;
+        }
+    }
+    return i;
+}
+
+function hexToRgb(hex) {
+    const num = parseInt(hex.replace('#', ''), 16);
+    return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+}
+
+function colorize(text, hex) {
+    const [r, g, b] = hexToRgb(hex);
+    return `\x1b[38;2;${r};${g};${b}m${text}\x1b[0m`;
+}
+
 function trackEvent(event, info) {
     const key = getTrackedEventKey(event);
     // debugLog("Tracking key: " + key);
     const eventIsBeingTracked = trackedEventsMap.has(key);
     if (!eventIsBeingTracked) {
         trackedEventsMap.set(key, info.codeContent);
-        console.log("\t" + info.objectName + " " + info.eventName.substring(0, info.eventName.search("_")).toLowerCase() + " event at line " + info.lineNumber.toString() + ":" + ((info) => { var spaces = ""; for (var i = 0; i < 6 - info.lineNumber.toString().length; i += 1) { spaces += " " } return spaces })(info) + info.codeContent);
+        const functionColor = "#ffbB871";
+        const parenColor = "#C0C0C0";
+        const expressionColor = "#FF8080";
+
+        const index = getLineIDIndex(info.codeContent, info.lineID);
+        const start = info.codeContent.substring(0, index);
+        const hot_reload_part = colorize(info.codeContent.substring(index, index + hot_reload_function_name.length), functionColor) + colorize("(", parenColor);
+        const endIndex = endIndexOfParen(info.codeContent, index + hot_reload_function_name.length + 1);
+        const expr = colorize(info.codeContent.substring(index + hot_reload_function_name.length + 1, endIndex - 1), expressionColor);
+        const end = colorize(")", parenColor) + info.codeContent.substring(endIndex, info.codeContent.length);
+        const codeContent = start + hot_reload_part + expr + end;
+
+        console.log("\t" + info.objectName + " " + info.eventName.substring(0, info.eventName.search("_")).toLowerCase() + " event at line " + info.lineNumber.toString() + ", position " + (info.lineID + 1).toString() + ":" + ((info) => { var spaces = ""; for (var i = 0; i < 6 - info.lineNumber.toString().length; i += 1) { spaces += " " } return spaces })(info) + codeContent);
     }
     else if (trackedEventsMap.get(key) != info.codeContent) {
         debugLog(trackedEventsMap.get(key) + " -> " + info.codeContent);
@@ -98,6 +132,19 @@ function trackEvent(event, info) {
     else {
         debugLog(info.codeContent);
     }
+}
+
+function nthIndex(str, pat, n) {
+    var L = str.length, i = -1;
+    while (n-- && i++ < L) {
+        i = str.indexOf(pat, i);
+        if (i < 0) break;
+    }
+    return i;
+}
+
+function getLineIDIndex(codeContent, lineID) {
+    return nthIndex(codeContent, hot_reload_function_name, lineID + 1);
 }
 
 app.post('/', (req, res) => {
@@ -109,28 +156,23 @@ app.post('/', (req, res) => {
 
     trackEvent(json.function_call, info);
 
-    var startIndex = info.codeContent.search(hot_reload_function_name) + hot_reload_function_name.length + 1;
-    var parenCount = 1;
-    var i = startIndex;
-    for (; parenCount > 0; i += 1) {
-        switch (info.codeContent.charAt(i)) {
-            case "(": parenCount += 1; break;
-            case ")": parenCount -= 1; break;
-        }
-    }
-    var expression_str = info.codeContent.substring(startIndex, i - 1);
-    var expression = undefined;
-    try {
-        expression = math.evaluate(expression_str)
-    }
-    catch (e) { }
+    var startIndex = getLineIDIndex(info.codeContent, info.lineID) + hot_reload_function_name.length + 1;
+    debugLog("LineID: " + info.lineID.toString() + ", Position: " + startIndex.toString() + ", Char: " + info.codeContent.charAt(startIndex));
 
-    if (expression == undefined) {
-        debugLog("Error evaluating " + expression_str);
-    }
-    else {
+    const endIndex = endIndexOfParen(info.codeContent, startIndex);
+
+    var expression_str = info.codeContent.substring(startIndex, endIndex - 1);
+    debugLog(hot_reload_function_name + "(" + expression_str + ")");
+    var expression;
+    try {
+        expression = math.evaluate(expression_str);
         debugLog(expression_str + " = " + expression.toString());
     }
+    catch (e) {
+        expression = undefined;
+        console.log("Error evaluating " + expression_str);
+    }
+
     res.send({ key: json.function_call, value: expression });
 })
 
@@ -162,6 +204,7 @@ function serverInit() {
 }
 
 app.post('/server_reset', (req, res) => {
+    console.clear();
     trackedEventsMap.clear();
     console.log("\nServer start\n===============================");
     serverInit();
@@ -173,5 +216,5 @@ app.get('/', (req, res) => {
 
 app.listen(port, () => {
     // console.log(`Listening at http://localhost:${port}`);
-    console.log("Server is listening");
+    debugLog("Server is listening");
 });
