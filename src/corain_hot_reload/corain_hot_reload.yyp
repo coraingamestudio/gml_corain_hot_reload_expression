@@ -26,7 +26,7 @@
   "name":"corain_hot_reload",
   "resources":[
     {"id":{"name":"obj_corain_hot_reload","path":"objects/obj_corain_hot_reload/obj_corain_hot_reload.yy",},},
-    {"id":{"name":"test_1","path":"objects/test_1/test_1.yy",},},
+    {"id":{"name":"obj_test_1","path":"objects/obj_test_1/obj_test_1.yy",},},
     {"id":{"name":"test_2","path":"objects/test_2/test_2.yy",},},
     {"id":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
     {"id":{"name":"scr_hot_reload","path":"scripts/scr_hot_reload/scr_hot_reload.yy",},},
