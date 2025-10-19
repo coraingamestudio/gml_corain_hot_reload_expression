@@ -19,7 +19,7 @@ for (var i = 0, len = array_length(post_handles); i < len; i += 1)
 				value.key,
 				{
 					return_value: value.value,
-					line_was_changed: old_value == undefined? false : old_value.line_was_changed
+					//line_was_changed: old_value == undefined? false : old_value.line_was_changed
 				});
 				array_delete(post_handles, i, 1);
 			}

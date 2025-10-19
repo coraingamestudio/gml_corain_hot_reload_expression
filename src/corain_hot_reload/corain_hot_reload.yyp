@@ -31,6 +31,7 @@
     {"id":{"name":"test_2","path":"objects/test_2/test_2.yy",},},
     {"id":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
     {"id":{"name":"scr_hot_reload","path":"scripts/scr_hot_reload/scr_hot_reload.yy",},},
+    {"id":{"name":"scr_test","path":"scripts/scr_test/scr_test.yy",},},
   ],
   "resourceType":"GMProject",
   "resourceVersion":"2.0",

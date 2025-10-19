@@ -12,6 +12,8 @@ const fs = require('fs');
 const app = express();
 const port = 8080;
 
+app.use(express.text({ type: '*/*' }));
+
 const errorColor = "#FF5B5B";
 const warnColor = "#FFFF00";
 
@@ -33,13 +35,9 @@ else {
     projectPath = exeDir.substring(0, exeDir.search(datafilesFolder));
 }
 
-console.log("Project path: " + projectPath);
 // console.log("Project path exists: " + fs.existsSync(projectPath));
 const objectsPath = projectPath + "objects\\";
-
-app.use(express.text({ type: '*/*' }));
-// app.use(express.json());
-//
+const scriptsPath = projectPath + "scripts\\";
 
 var trackedEventsMap = new Map();
 var trackedObjects = [];
@@ -48,11 +46,24 @@ var trackedEventsContents = [];
 
 const hot_reload_function_name = "hot_reload";
 
+const ServerStatus = {
+    pending: "pending",
+    start: "start"
+};
+
+function logServerStatus(serverStatus) {
+    const totalStr = colorize("Server " + serverStatus, serverStatus == ServerStatus.pending ? warnColor : "#00FF00") + colorize(" - " + projectName + " " + projectVersion, parenColor) + " - " + colorize("https://github.com/coraingamestudio/gml_corain_hot_reload_expression", varColor) + " - " + colorize("Corain Game Studio", errorColor);
+    console.log(totalStr);
+    console.log(colorize("=".repeat(131 + serverStatus.length), varColor));
+}
+
 function debugLog(message) {
     if (DEBUG_BUILD) {
         console.log(message);
     }
 }
+
+debugLog("Project path: " + projectPath);
 
 function parseRequest(json_string) {
     var json = undefined;
@@ -215,11 +226,28 @@ function getLineIDIndex(codeContent, lineID) {
     return nthIndex(codeContent, hot_reload_function_name, lineID + 1);
 }
 
+const CallerType = {
+    function: {
+        global: "global_function",
+        member: "member_function",
+        anon: "anon_function",
+    },
+    object: "object"
+}
+
+const typeMap = new Map();
+typeMap.set(0, CallerType.function.global);
+typeMap.set(1, CallerType.function.member);
+typeMap.set(2, CallerType.function.anon);
+typeMap.set(3, CallerType.object);
+
+//Process
 app.post('/', (req, res) => {
     var json = parseRequest(req.body);
     if (json == undefined) return;
 
-    debugLog("Received: " + req.body);
+    // console.log("Received: " + req.body);
+    // return;
     var info = lineOfCodeInfo(json.function_call);
 
     trackEvent(json.function_call, info);
@@ -248,7 +276,7 @@ app.post('/', (req, res) => {
     }
 
     res.send({ key: json.function_call, value: expression });
-})
+});
 
 app.post('/tracked_files', (req, res) => {
     var json = parseRequest(req.body);
@@ -276,7 +304,7 @@ app.post('/tracked_files', (req, res) => {
 var serverWasInitialized = false;
 
 function serverInit() {
-    rl.resume();
+    // rl.resume();
     console.clear();
 
     trackedObjectEvents.clear();
@@ -284,9 +312,7 @@ function serverInit() {
     trackedEventsContents = [];
     trackedObjects = [];
 
-    const totalStr = colorize("Server start", "#00FF00") + colorize(" - " + projectName + " " + projectVersion, parenColor) + " - " + colorize("https://github.com/coraingamestudio/gml_corain_hot_reload_expression", varColor) + " - " + colorize("Corain Game Studio", errorColor);
-    console.log(totalStr);
-    console.log(colorize("=".repeat(136), varColor));
+    logServerStatus(ServerStatus.start);
     serverWasInitialized = true;
     // console.log("Events tracked:");
     rl.prompt();
@@ -313,9 +339,10 @@ const rl = readline.createInterface({
 });
 
 app.listen(port, () => {
-    // console.log(`Listening at http://localhost:${port}`);
-    console.log(projectName + " server executed");
-    // rl.prompt();
+    console.clear();
+    logServerStatus(ServerStatus.pending);
+    rl.prompt();
+    // console.log(projectName + " server executed");
 });
 
 function logNumberOfTimesCalled(number) {
@@ -341,6 +368,12 @@ class Error {
 }
 
 rl.on("line", (input) => {
+    if (!serverWasInitialized) {
+        Error.log("Can't execute any commands: server has not connected to a game.");
+        rl.prompt();
+        return;
+    }
+
     const argv = input.split(" ");
     // console.log(argv);
     const argc = argv.length;
@@ -409,4 +442,4 @@ rl.on("line", (input) => {
 });
 
 rl.setPrompt("Server> ");
-rl.pause();
+// rl.pause();

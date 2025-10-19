@@ -5,6 +5,13 @@ function hot_reload_init()
 	instance_create_depth(0, 0, 0, obj_corain_hot_reload);
 }
 
+enum HotReloadType {
+	global_function,
+	member_function,
+	anon_function,
+	object_event
+}
+
 function hot_reload(value)
 {
 	//show_debug_message(value);
@@ -13,13 +20,20 @@ function hot_reload(value)
 	
 	var hot_reload_info           = undefined;
 																	// [current procedure, calling procedure, ...]
-	var calling_object_no_line_id = string_copy(debug_get_callstack()[1], 12, 999);
+	var calling_object_no_line_id = string_copy(debug_get_callstack()[1],12, 999);
 	var update_line_id            = backend.previous_calling_object == calling_object_no_line_id;
 	
 	if (backend.initial_function_call)	
 	{
 		if (!ds_map_exists(backend.event_line_map, calling_object_no_line_id))
 		{
+			//else
+			{
+				//show_debug_message("Object: " + calling_object_no_line_id);				
+			}
+			//show_debug_message(calling_object_no_line_id);
+			//show_debug_message(_GMFILE_);
+			
 			backend.line_id = 0;
 			ds_map_add(backend.event_line_map, calling_object_no_line_id, []);
 			if (backend.previous_calling_object != "")
@@ -47,8 +61,8 @@ function hot_reload(value)
 	}
 	
 	event_line_array = ds_map_find_value(backend.event_line_map, calling_object_no_line_id);
-	var _ = event_line_array;
-	var __ = backend.previous_calling_object;
+	//var _ = event_line_array;
+	//var __ = backend.previous_calling_object;
 	var len              = array_length(event_line_array);
 	
 	if (update_line_id)
@@ -64,7 +78,7 @@ function hot_reload(value)
 	
 	if (!ds_map_exists(backend.hot_reload_return_value_map, calling_object))
 	{
-		hot_reload_info = {return_value: undefined, line_was_changed: false};
+		hot_reload_info = {return_value: undefined};
 		ds_map_add(backend.hot_reload_return_value_map, calling_object, hot_reload_info);
 	}
 	else
@@ -74,14 +88,39 @@ function hot_reload(value)
 	
 	if (backend.timer >= backend.refresh_time)
 	{
+		var type = HotReloadType.object_event;
+		//Is function
+		if (asset_get_index(string_split(calling_object_no_line_id, ":")[0]) != -1)
+		{
+			switch (array_length(string_split(calling_object_no_line_id, "@")))
+			{
+				case 1: 
+				{
+					type = HotReloadType.global_function;
+					//show_debug_message("Global function: " + calling_object_no_line_id)
+				} break;
+				case 2: 
+				{
+					type = HotReloadType.member_function;						
+					//show_debug_message("Member function: " + calling_object_no_line_id);
+				} break;
+				default:
+				{
+					type = HotReloadType.anon_function;						
+					//show_debug_message("Anon function: " + calling_object_no_line_id);
+				} break;
+			}
+		}
 		//show_debug_message($"Calling object: {calling_object}, LineID: {backend.line_id}");
 		var body = {
-			function_call : calling_object
+			function_call : calling_object,
+			type          : type
 		};
 
 		var json        = json_stringify(body);
 
-		//show_debug_message($"Send: {json}");
+		//show_debug_message(calling_object);
+		//show_debug_message($"Send: {json}, {debug_get_callstack()[2]}");
 		backend.post(json);
 	}
 	
