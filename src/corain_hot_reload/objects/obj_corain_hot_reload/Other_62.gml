@@ -12,16 +12,17 @@ for (var i = 0, len = array_length(post_handles); i < len; i += 1)
 		{
 			//show_debug_message("Iterating post_handles: handling id " + string(handle));
 			var value = json_parse(async_load[? "result"]);
-			//show_debug_message(value);
-			
-			var old_value = ds_map_find_value(hot_reload_return_value_map, value.key);
-			ds_map_set(hot_reload_return_value_map,
-			value.key,
+			if (value.value != undefined)
 			{
-				return_value: value.value,
-				line_was_changed: old_value == undefined? false : old_value.line_was_changed
-			});
-			array_delete(post_handles, i, 1);
+				var old_value = ds_map_find_value(hot_reload_return_value_map, value.key);
+				ds_map_set(hot_reload_return_value_map,
+				value.key,
+				{
+					return_value: value.value,
+					line_was_changed: old_value == undefined? false : old_value.line_was_changed
+				});
+				array_delete(post_handles, i, 1);
+			}
 		} exit;
 	}
 }

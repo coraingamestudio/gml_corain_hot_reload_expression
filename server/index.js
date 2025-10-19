@@ -105,6 +105,8 @@ function colorize(text, hex) {
     return `\x1b[38;2;${r};${g};${b}m${text}\x1b[0m`;
 }
 
+const errorColor = "#FF5B5B";
+
 function trackEvent(event, info) {
     const key = getTrackedEventKey(event);
     // debugLog("Tracking key: " + key);
@@ -114,16 +116,18 @@ function trackEvent(event, info) {
         const functionColor = "#ffbB871";
         const parenColor = "#C0C0C0";
         const expressionColor = "#FF8080";
+        const assetColor = "#FF8080"
+        const varColor = "#B2B1FF";
 
         const index = getLineIDIndex(info.codeContent, info.lineID);
-        const start = info.codeContent.substring(0, index);
+        const start = colorize(info.codeContent.substring(0, index), parenColor);
         const hot_reload_part = colorize(info.codeContent.substring(index, index + hot_reload_function_name.length), functionColor) + colorize("(", parenColor);
         const endIndex = endIndexOfParen(info.codeContent, index + hot_reload_function_name.length + 1);
         const expr = colorize(info.codeContent.substring(index + hot_reload_function_name.length + 1, endIndex - 1), expressionColor);
-        const end = colorize(")", parenColor) + info.codeContent.substring(endIndex, info.codeContent.length);
+        const end = colorize(")", parenColor) + colorize(info.codeContent.substring(endIndex, info.codeContent.length), parenColor);
         const codeContent = start + hot_reload_part + expr + end;
 
-        console.log("\t" + info.objectName + " " + info.eventName.substring(0, info.eventName.search("_")).toLowerCase() + " event at line " + info.lineNumber.toString() + ", position " + (info.lineID + 1).toString() + ":" + ((info) => { var spaces = ""; for (var i = 0; i < 6 - info.lineNumber.toString().length; i += 1) { spaces += " " } return spaces })(info) + codeContent);
+        console.log("\t" + colorize(info.objectName, assetColor) + " { " + colorize(info.eventName.substring(0, info.eventName.search("_")).toLowerCase(), functionColor) + colorize(" event at ", parenColor) + colorize("line ", varColor) + colorize(info.lineNumber.toString(), expressionColor) + colorize(", ", parenColor) + colorize("position ", varColor) + colorize((info.lineID + 1).toString(), expressionColor) + " }" + ((info) => { var spaces = ""; for (var i = 0; i < 6 - info.lineNumber.toString().length; i += 1) { spaces += " " } return spaces })(info) + codeContent);
     }
     else if (trackedEventsMap.get(key) != info.codeContent) {
         debugLog(trackedEventsMap.get(key) + " -> " + info.codeContent);
@@ -156,21 +160,27 @@ app.post('/', (req, res) => {
 
     trackEvent(json.function_call, info);
 
+    var expression = Infinity;
     var startIndex = getLineIDIndex(info.codeContent, info.lineID) + hot_reload_function_name.length + 1;
     debugLog("LineID: " + info.lineID.toString() + ", Position: " + startIndex.toString() + ", Char: " + info.codeContent.charAt(startIndex));
 
-    const endIndex = endIndexOfParen(info.codeContent, startIndex);
+    if (startIndex > hot_reload_function_name.length && info.codeContent.charAt(startIndex - 1) == "(") {
 
-    var expression_str = info.codeContent.substring(startIndex, endIndex - 1);
-    debugLog(hot_reload_function_name + "(" + expression_str + ")");
-    var expression;
-    try {
-        expression = math.evaluate(expression_str);
-        debugLog(expression_str + " = " + expression.toString());
+        const endIndex = endIndexOfParen(info.codeContent, startIndex);
+
+        var expression_str = info.codeContent.substring(startIndex, endIndex - 1);
+        debugLog(hot_reload_function_name + "(" + expression_str + ")");
+        try {
+            expression = math.evaluate(expression_str);
+            debugLog(expression_str + " = " + expression.toString());
+        }
+        catch (e) {
+            expression = Infinity;
+            // console.log("Error evaluating " + expression_str);
+        }
     }
-    catch (e) {
-        expression = undefined;
-        console.log("Error evaluating " + expression_str);
+    else {
+        console.log(colorize("Parsing error: ", errorColor) + "it is recommended undoing the changes in the code or restarting the game");
     }
 
     res.send({ key: json.function_call, value: expression });
