@@ -2,6 +2,7 @@ const EXPORT = false;
 const DEBUG_BUILD = false;
 
 const express = require('express')
+const readline = require("readline");
 const process = require("process");
 const path = require("path");
 
@@ -10,6 +11,17 @@ const fs = require('fs');
 
 const app = express();
 const port = 8080;
+
+const errorColor = "#FF5B5B";
+const warnColor = "#FFFF00";
+
+const functionColor = "#ffbB871";
+const parenColor = "#C0C0C0";
+const expressionColor = "#FF8080";
+const assetColor = "#FF8080"
+const varColor = "#B2B1FF";
+const projectName = colorize("Hot Reload Expressions", functionColor);
+const projectVersion = colorize("v0.0.3", expressionColor);
 
 const exeDir = path.dirname(process.execPath);
 var projectPath;
@@ -30,6 +42,9 @@ app.use(express.text({ type: '*/*' }));
 //
 
 var trackedEventsMap = new Map();
+var trackedObjects = [];
+var trackedObjectEvents = new Map();
+var trackedEventsContents = [];
 
 const hot_reload_function_name = "hot_reload";
 
@@ -105,29 +120,78 @@ function colorize(text, hex) {
     return `\x1b[38;2;${r};${g};${b}m${text}\x1b[0m`;
 }
 
-const errorColor = "#FF5B5B";
-
 function trackEvent(event, info) {
     const key = getTrackedEventKey(event);
     // debugLog("Tracking key: " + key);
     const eventIsBeingTracked = trackedEventsMap.has(key);
     if (!eventIsBeingTracked) {
         trackedEventsMap.set(key, info.codeContent);
-        const functionColor = "#ffbB871";
-        const parenColor = "#C0C0C0";
-        const expressionColor = "#FF8080";
-        const assetColor = "#FF8080"
-        const varColor = "#B2B1FF";
+        if (trackedObjects.indexOf(info.objectName) == -1) {
+            trackedObjects.push(info.objectName);
+        }
 
+        if (!trackedObjectEvents.has(info.objectName)) {
+            trackedObjectEvents.set(info.objectName, []);
+        }
+
+        const padAmount = 6;
         const index = getLineIDIndex(info.codeContent, info.lineID);
         const start = colorize(info.codeContent.substring(0, index), parenColor);
         const hot_reload_part = colorize(info.codeContent.substring(index, index + hot_reload_function_name.length), functionColor) + colorize("(", parenColor);
         const endIndex = endIndexOfParen(info.codeContent, index + hot_reload_function_name.length + 1);
         const expr = colorize(info.codeContent.substring(index + hot_reload_function_name.length + 1, endIndex - 1), expressionColor);
         const end = colorize(")", parenColor) + colorize(info.codeContent.substring(endIndex, info.codeContent.length), parenColor);
-        const codeContent = start + hot_reload_part + expr + end;
+        var eventName = info.eventName.split("_");
+        switch (eventName[0].toLowerCase()) {
+            case "cleanup":
+            case "create": {
+                eventName = eventName[0];
+            } break;
+            case "step": {
+                switch (eventName[1]) {
+                    case "0": {
+                        eventName = eventName[0];
+                    } break;
+                    case "1": {
+                        eventName = "Begin_" + eventName[0];
+                    } break;
+                    case "2": {
+                        eventName = "End_" + eventName[0];
+                    } break;
+                }
+            } break;
+            case "draw": {
+                switch (eventName[1]) {
+                    case "0": {
+                        eventName = eventName[0];
+                    } break;
+                    case "64": {
+                        eventName = eventName[0] + "_GUI";
+                    } break;
+                    case "72": {
+                        eventName = eventName[0] + "_Begin";
+                    } break;
+                    case "73": {
+                        eventName = eventName[0] + "_End";
+                    } break;
+                    case "76": {
+                        eventName = "Pre_" + eventName[0];
+                    } break;
+                    case "77": {
+                        eventName = "Post_" + eventName[0];
+                    } break;
+                }
+            }
+            default: {
+                eventName = info.eventName;
+            } break;
+        }
 
-        console.log("\t" + colorize(info.objectName, assetColor) + " { " + colorize(info.eventName.substring(0, info.eventName.search("_")).toLowerCase(), functionColor) + colorize(" event at ", parenColor) + colorize("line ", varColor) + colorize(info.lineNumber.toString(), expressionColor) + colorize(", ", parenColor) + colorize("position ", varColor) + colorize((info.lineID + 1).toString(), expressionColor) + " }" + ((info) => { var spaces = ""; for (var i = 0; i < 6 - info.lineNumber.toString().length; i += 1) { spaces += " " } return spaces })(info) + codeContent);
+        const codeContent = start + hot_reload_part + expr + end;
+        const finalContent = colorize(info.objectName, assetColor) + ":" + colorize(eventName, functionColor) + ":" + colorize(info.lineNumber.toString(), expressionColor) + colorize(":", parenColor) + colorize((info.lineID + 1).toString(), expressionColor) + ((info) => { var spaces = ""; for (var i = 0; i < padAmount - info.lineNumber.toString().length; i += 1) { spaces += " " } return spaces })(info) + codeContent;
+
+        trackedEventsContents.push(finalContent);
+        trackedObjectEvents.get(info.objectName).push(finalContent);
     }
     else if (trackedEventsMap.get(key) != info.codeContent) {
         debugLog(trackedEventsMap.get(key) + " -> " + info.codeContent);
@@ -209,14 +273,33 @@ app.post('/tracked_files', (req, res) => {
     trackEvent(json.function_call, info);
 });
 
+var serverWasInitialized = false;
+
 function serverInit() {
-    console.log("Events tracked:");
+    rl.resume();
+    console.clear();
+
+    trackedObjectEvents.clear();
+    trackedEventsMap.clear();
+    trackedEventsContents = [];
+    trackedObjects = [];
+
+    const totalStr = colorize("Server start", "#00FF00") + colorize(" - " + projectName + " " + projectVersion, parenColor) + " - " + colorize("https://github.com/coraingamestudio/gml_corain_hot_reload_expression", varColor) + " - " + colorize("Corain Game Studio", errorColor);
+    console.log(totalStr);
+    console.log(colorize("=".repeat(136), varColor));
+    serverWasInitialized = true;
+    // console.log("Events tracked:");
+    rl.prompt();
 }
 
+app.post("/continuous_connection", (req, res) => {
+    if (!serverWasInitialized) {
+        serverInit();
+    }
+})
+
 app.post('/server_reset', (req, res) => {
-    console.clear();
-    trackedEventsMap.clear();
-    console.log("\nServer start\n===============================");
+    // readline.clearLine(process.stdout, 0);
     serverInit();
 });
 
@@ -224,7 +307,106 @@ app.get('/', (req, res) => {
     // res.send('Hello World from Express!');
 });
 
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+});
+
 app.listen(port, () => {
     // console.log(`Listening at http://localhost:${port}`);
-    debugLog("Server is listening");
+    console.log(projectName + " server executed");
+    // rl.prompt();
 });
+
+function logNumberOfTimesCalled(number) {
+    console.log("The function is called " + colorize(number.toString(), expressionColor) + " time" + (number > 1 ? "s." : "."));
+}
+
+class Error {
+    static log(string) {
+        console.log(colorize(string, errorColor));
+    }
+
+    static invalidArg(arg) {
+        Error.log(arg + " is not a valid argument");
+    }
+
+    static wrongArgNumber() {
+        Error.log("Wrong number of arguments");
+    }
+
+    static commandNotRecognized() {
+        Error.log("Command not recognized.");
+    }
+}
+
+rl.on("line", (input) => {
+    const argv = input.split(" ");
+    // console.log(argv);
+    const argc = argv.length;
+
+    switch (argv[0].toLowerCase()) {
+        case "": break;
+        case "quit": {
+            console.log("Server exit.");
+            process.exit(0);
+        } break;
+        case "calls": {
+            switch (argc) {
+                case 1: {
+                    if (trackedEventsContents.length <= 0) {
+                        console.log(colorize(hot_reload_function_name, functionColor) + colorize("() ", parenColor) + colorize("was never called", "#FFFFFF"));
+                        break;
+                    }
+
+                    for (var i in trackedEventsContents) {
+                        console.log(trackedEventsContents[i]);
+                    }
+
+                    logNumberOfTimesCalled(trackedEventsContents.length);
+                } break;
+                case 2: {
+                    switch (argv[1].toLowerCase()) {
+                        case "objects": {
+                            var numberOfFunctionCalls = 0;
+                            for (var i in trackedObjects) {
+                                const events = trackedObjectEvents.get(trackedObjects[i]);
+                                for (var j in events) {
+                                    console.log(events[j]);
+                                }
+
+                                numberOfFunctionCalls += events.length;
+                            }
+
+                            logNumberOfTimesCalled(numberOfFunctionCalls);
+                        } break;
+                        default: {
+                            if (trackedObjects.indexOf(argv[1]) == -1) {
+                                Error.log(argv[1] + " is not being tracked or does not exist.");
+                                break;
+                            }
+
+                            const events = trackedObjectEvents.get(argv[1]);
+                            for (var i in events) {
+                                console.log(events[i]);
+                            }
+
+                            logNumberOfTimesCalled(events.length);
+                        } break;
+                    }
+                } break;
+                default: {
+                    Error.wrongArgNumber();
+                } break;
+            }
+        } break;
+        default: {
+            Error.commandNotRecognized();
+        } break;
+    }
+
+    rl.prompt();
+});
+
+rl.setPrompt("Server> ");
+rl.pause();

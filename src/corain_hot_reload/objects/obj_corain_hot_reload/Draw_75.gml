@@ -3,6 +3,8 @@
 if (timer >= refresh_time)
 {
 	timer = 0;
+	//show_debug_message("refr");
+	//http_post_string(url + "/continuous_connection", "");
 	//show_debug_message("Server refresh");
 }
 

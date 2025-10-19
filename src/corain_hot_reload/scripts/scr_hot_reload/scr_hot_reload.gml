@@ -81,6 +81,7 @@ function hot_reload(value)
 
 		var json        = json_stringify(body);
 
+		//show_debug_message($"Send: {json}");
 		backend.post(json);
 	}
 	
